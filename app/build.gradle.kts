@@ -77,4 +77,6 @@ dependencies {
     implementation("com.maxkeppeler.sheets-compose-dialogs:calendar:1.0.2")
     implementation ("com.google.firebase:firebase-firestore:25.1.0")
     implementation("co.yml:ycharts:2.1.0")
+    implementation("com.google.accompanist:accompanist-navigation-animation:0.30.1")
+    implementation("com.google.accompanist:accompanist-placeholder-material:0.30.1")
 }

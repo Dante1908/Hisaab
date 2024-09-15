@@ -7,4 +7,16 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="primary_500">#4CAF50</color> <!-- Green for positive transactions (Income) -->
+    <color name="primary_700">#388E3C</color> <!-- Darker green for buttons and emphasis -->
+    <color name="secondary_500">#F44336</color> <!-- Red for negative transactions (Expense) -->
+    <color name="secondary_700">#D32F2F</color> <!-- Darker red for buttons and emphasis -->
+    <color name="accent_500">#FFC107</color> <!-- Amber for highlights, notifications, or alerts -->
+    <color name="background_100">#F5F5F5</color> <!-- Light grey for background surfaces -->
+    <color name="background_500">#FFFFFF</color> <!-- White for card backgrounds -->
+    <color name="text_primary">#212121</color> <!-- Dark grey for primary text -->
+    <color name="text_secondary">#757575</color> <!-- Lighter grey for secondary text -->
+    <color name="divider">#BDBDBD</color> <!-- Light grey for dividers -->
+    <color name="success">#00C853</color> <!-- Bright green for successful operations -->
+    <color name="error">#D50000</color> <!-- Bright red for error messages -->
 </resources>

@@ -32,9 +32,9 @@ import com.example.hisaab.ViewModel.TransactionViewModel
 fun MainScreen(){
     val authViewModel = AuthViewModel()
     val transactionViewModel = viewModel<TransactionViewModel>()
-    MainScreenNavigation(authViewModel = authViewModel, transactionViewModel = transactionViewModel)
+    //MainScreenNavigation(authViewModel = authViewModel, transactionViewModel = transactionViewModel)
 }
-
+/*
 @Composable
 fun MainScreenNavigation(authViewModel: AuthViewModel, transactionViewModel: TransactionViewModel){
     val navController = rememberNavController()
@@ -116,3 +116,4 @@ fun BottomNavigationBar(navController: NavController){
         }
     }
 }
+*/

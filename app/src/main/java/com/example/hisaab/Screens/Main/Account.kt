@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -47,6 +48,9 @@ import co.yml.charts.common.utils.DataUtils
 import co.yml.charts.ui.barchart.BarChart
 import co.yml.charts.ui.barchart.models.BarChartData
 import co.yml.charts.ui.barchart.models.BarChartType
+import co.yml.charts.ui.barchart.models.BarData
+import co.yml.charts.ui.combinedchart.CombinedChart
+import co.yml.charts.ui.combinedchart.model.CombinedChartData
 import co.yml.charts.ui.linechart.LineChart
 import co.yml.charts.ui.linechart.model.GridLines
 import co.yml.charts.ui.linechart.model.IntersectionPoint
@@ -87,15 +91,9 @@ fun AccountScreen(modifier: Modifier = Modifier, navController: NavController, a
         viewModel.loadTransactions(uid)
     }
     val transactions by viewModel.transactions.observeAsState()
-    val incomeCateories = Categories.incomeCategory()
+    val incomeCategories = Categories.incomeCategory()
     val expenseCategories = Categories.expenseCategory()
-    val incomeTransactionWithDates = transactions?.filter { incomeCateories.contains(it.category) }?.map{transaction->
-        Triple(transaction.date,transaction.amount,transaction.category)
-    }?: emptyList()
-    val expenseTransactionWithDates = transactions?.filter { expenseCategories.contains(it.category) }?.map{transaction->
-        Triple(transaction.date,transaction.amount,transaction.category)
-    }?: emptyList()
-    val totalIncome = transactions?.filter { incomeCateories.contains(it.category)}?.sumOf { it.amount } ?: 0.0
+    val totalIncome = transactions?.filter { incomeCategories.contains(it.category)}?.sumOf { it.amount } ?: 0.0
     val totalExpense = transactions?.filter { expenseCategories.contains(it.category) }?.sumOf { it.amount } ?: 0.0
     val netAmount = totalIncome - totalExpense
     val formattedDate = remember {
@@ -104,6 +102,20 @@ fun AccountScreen(modifier: Modifier = Modifier, navController: NavController, a
             else "${selectedStartDate.value} - ${selectedEndDate.value}"
         }
     }
+    val initialIncomeSums = incomeCategories.associateWith { 0.0 }.toMutableMap()
+    transactions?.filter { incomeCategories.contains(it.category) }
+        ?.groupBy { it.category }
+        ?.forEach { (category, transactions) ->
+            initialIncomeSums[category] = transactions.sumOf { it.amount }
+        }
+    val incomeTransactions = initialIncomeSums.toList()
+    val initialExpenseSums = expenseCategories.associateWith { 0.0 }.toMutableMap()
+    transactions?.filter { expenseCategories.contains(it.category) }
+        ?.groupBy { it.category }
+        ?.forEach { (category, transactions) ->
+            initialExpenseSums[category] = transactions.sumOf { it.amount }
+        }
+    val expenseTransactions = initialExpenseSums.toList()
     var showBarChart by remember { mutableStateOf(false) }
     CalendarDialog(state = calendarState, config = CalendarConfig(monthSelection = true, yearSelection = true), selection = CalendarSelection.Period { start, end ->
             selectedStartDate.value = start
@@ -122,7 +134,6 @@ fun AccountScreen(modifier: Modifier = Modifier, navController: NavController, a
                     .fillMaxWidth(0.85f), fontSize = 20.sp)
                 IconButton(onClick = {
                     authViewModel.signout()
-                    navController.navigate("login")
                 }){
                     Image(painter = painterResource(id = R.drawable.logout_logo),contentDescription = "Logout",modifier = Modifier.size(width = 100.dp, height = 100.dp))
                 }
@@ -170,12 +181,12 @@ fun AccountScreen(modifier: Modifier = Modifier, navController: NavController, a
                         //TODO:Show Pie Chart
                         Text(text = "Ratio")
                     }
+                    Spacer(modifier = Modifier.size(10.dp))
                 }
                 if(showBarChart){
-                    LineChartElement(incomeTransactionWithDates)
+                    BarChartElement(incomeTransactions,expenseTransactions,modifier = Modifier.height(350.dp))
                 }
-                else if(!showBarChart)
-                {
+                else if(!showBarChart){
                     PieChartElement(totalIncome.toFloat(),totalExpense.toFloat())
                 }
             }
@@ -184,29 +195,60 @@ fun AccountScreen(modifier: Modifier = Modifier, navController: NavController, a
 }
 
 @Composable
-fun LineChartElement(incomeTransactionWithDates: List<Triple<String, Double, String>>){
-    val steps = 4
-    val pointsData: List<Point> = incomeTransactionWithDates.mapIndexed{index, (transaction)->
-        Point(x = index.toFloat(), y = transaction.toFloat())
+fun BarChartElement(incomeTransactions: List<Pair<String, Double>>, expenseTransactions: List<Pair<String, Double>>, modifier: Modifier = Modifier){
+    val incomeBarData = incomeTransactions.map { (category, amount) ->
+        BarData(
+            point = Point(x = amount.toFloat(), y = 0f),
+            label = category)}
+    val expenseBarData = expenseTransactions.map { (category, amount) ->
+        BarData(
+            point = Point(x = amount.toFloat(), y = 0f),
+            label = category
+        )
     }
-    val xAxisData = AxisData.Builder().axisStepSize(100.dp).backgroundColor(Color.LightGray).steps(pointsData.size - 1).labelData { i -> if(i in incomeTransactionWithDates.indices) incomeTransactionWithDates[i].first else i.toString() }.labelAndAxisLinePadding(15.dp).build()
-    val yAxisData = AxisData.Builder().steps(steps).backgroundColor(Color.LightGray).labelAndAxisLinePadding(20.dp).labelData { i ->
-        val maxAmount = incomeTransactionWithDates.maxOfOrNull { it.second }?:100
-        val yScale = maxAmount.toFloat() / steps
-            (i * yScale).toString()
-        }.build()
-    val lineChartData1 = LineChartData(linePlotData = LinePlotData(
-        lines = listOf(Line(dataPoints = pointsData, LineStyle(), IntersectionPoint(), SelectionHighlightPoint(), ShadowUnderLine(), SelectionHighlightPopUp())),),
-        xAxisData = xAxisData,
-        yAxisData = yAxisData,
-        backgroundColor = Color.LightGray
-    )
-    LineChart(
-        modifier = Modifier
-            .fillMaxSize(),
-        lineChartData = lineChartData1
+    val incomeXAxisData = AxisData.Builder()
+        .axisStepSize(30.dp)
+        .steps(incomeBarData.size - 1)
+        .bottomPadding(40.dp)
+        .axisLabelAngle(20f)
+        .labelData { index -> incomeBarData[index].label }
+        .build()
+
+    val incomeYAxisData = AxisData.Builder()
+        .steps(5)
+        .labelAndAxisLinePadding(20.dp)
+        .axisOffset(20.dp)
+        .labelData { index -> (index * 100).toString() }
+        .build()
+
+    val incomeChartData = BarChartData(
+        chartData = incomeBarData,
+        xAxisData = incomeXAxisData,
+        yAxisData = incomeYAxisData,
     )
 
+    val expenseXAxisData = AxisData.Builder()
+        .axisStepSize(30.dp)
+        .steps(expenseBarData.size - 1)
+        .bottomPadding(40.dp)
+        .axisLabelAngle(20f)
+        .labelData { index -> expenseBarData[index].label }
+        .build()
+
+    val expenseYAxisData = AxisData.Builder()
+        .steps(5)
+        .labelAndAxisLinePadding(20.dp)
+        .axisOffset(20.dp)
+        .labelData { index -> (index * 100).toString() }
+        .build()
+
+    val expenseChartData = BarChartData(
+        chartData = expenseBarData,
+        xAxisData = expenseXAxisData,
+        yAxisData = expenseYAxisData,
+    )
+    BarChart(modifier = Modifier.height(350.dp), barChartData = incomeChartData)
+    BarChart(modifier = Modifier.height(350.dp), barChartData = expenseChartData)
 }
 
 @Composable
@@ -214,11 +256,5 @@ fun PieChartElement(incomeTotal :Float, expenseTotal :Float){
     val slices = listOf(PieChartData.Slice("Income", incomeTotal, Color(0xFF66CC66)), PieChartData.Slice("Expense", expenseTotal, Color(0xFFCC6666)))
     val pieChartData = PieChartData(slices = slices, plotType = PlotType.Pie)
     val pieChartConfig = PieChartConfig(isAnimationEnable = true, showSliceLabels = true, animationDuration = 500,labelType = PieChartConfig.LabelType.VALUE)
-    PieChart(modifier = Modifier.fillMaxSize(), pieChartData,pieChartConfig)
-}
-
-@Preview
-@Composable
-fun AccountScreenPreview(){
-    AccountScreen(navController = NavController(LocalContext.current), authViewModel = AuthViewModel(), viewModel = TransactionViewModel())
+    PieChart(modifier = Modifier.fillMaxHeight(), pieChartData,pieChartConfig)
 }

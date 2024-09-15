@@ -64,7 +64,8 @@ fun SignUpScreen(modifier: Modifier = Modifier,navController: NavController,auth
                     val userData = UserData(email,currentUser.uid)
                     addUsertoFirestore(userData)
                 }
-                navController.navigate("Home")}
+                //navController.navigate("Home")
+            }
             is AuthState.Error -> {
                 Toast.makeText(context, (authState.value as AuthState.Error).message, Toast.LENGTH_SHORT).show()
             }

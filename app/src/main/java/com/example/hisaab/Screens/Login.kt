@@ -80,7 +80,8 @@ fun LoginScreen(modifier: Modifier = Modifier,navController: NavController, auth
                     val user_Data_unknown = UserData(user!!.email!!,user!!.uid)
                     addUsertoFirestore(user_Data_unknown)
                 }
-                navController.navigate("Home")}
+                //navController.navigate("Home")
+            }
             is AuthState.Error->{
                 Toast.makeText(context, (authState.value as AuthState.Error).message, Toast.LENGTH_SHORT).show()
             }

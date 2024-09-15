@@ -1,6 +1,8 @@
 package com.example.hisaab.ViewModel
 
 import android.util.Log
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -14,8 +16,9 @@ import kotlinx.coroutines.launch
 
 
 class TransactionViewModel: ViewModel() {
-    private val _isRefreshing = MutableLiveData(false)
+    private val _isLoading = mutableStateOf(true)
     private val _transactions = MutableLiveData<List<TransactionData>>()
+    val loading: State<Boolean> = _isLoading
     val transactions: LiveData<List<TransactionData>> = _transactions
     fun getTransactionsFromFirestore(userId: String, onSuccess: (List<TransactionData>) -> Unit, onFailure: (Exception) -> Unit) {
         val db = FirebaseFirestore.getInstance()
@@ -33,7 +36,9 @@ class TransactionViewModel: ViewModel() {
             }
     }
     fun loadTransactions(userId:String){
-        getTransactionsFromFirestore(userId,onSuccess = {transactions->_transactions.value = transactions}, onFailure = {exception-> Log.e("TransactionViewModel","Error loading transactions",exception)})
+        _isLoading.value=true
+
+        getTransactionsFromFirestore(userId,onSuccess = {transactions->_transactions.value = transactions; _isLoading.value=false}, onFailure = {exception-> Log.e("TransactionViewModel","Error loading transactions",exception);_isLoading.value=false})
     }
     fun deleteTransaction(transactionId: String, userId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         val db = FirebaseFirestore.getInstance()
