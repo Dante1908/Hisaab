@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key.Companion.I
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -69,6 +70,7 @@ import com.example.hisaab.Data.TransactionData
 import com.example.hisaab.R
 import com.example.hisaab.ViewModel.AuthViewModel
 import com.example.hisaab.ViewModel.TransactionViewModel
+import com.example.hisaab.ui.theme.PurpleGrey40
 import com.google.firebase.auth.FirebaseAuth
 import com.maxkeppeker.sheets.core.models.base.rememberSheetState
 import com.maxkeppeler.sheets.calendar.CalendarDialog
@@ -77,6 +79,7 @@ import com.maxkeppeler.sheets.calendar.models.CalendarSelection
 import java.time.LocalDate
 import kotlin.math.expm1
 import kotlin.math.max
+import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,17 +120,18 @@ fun AccountScreen(modifier: Modifier = Modifier, navController: NavController, a
         }
     val expenseTransactions = initialExpenseSums.toList()
     var showBarChart by remember { mutableStateOf(false) }
+    var showIncome by remember { mutableStateOf(false) }
     CalendarDialog(state = calendarState, config = CalendarConfig(monthSelection = true, yearSelection = true), selection = CalendarSelection.Period { start, end ->
             selectedStartDate.value = start
             selectedEndDate.value = end
         }
     )
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier) {
         Box(modifier = Modifier
             .fillMaxWidth()
             .height(100.dp)) {
             val shape = RoundedCornerShape(2.dp)
-            Image(painter = painterResource(id = R.drawable.account_back), contentDescription = "Header background", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.FillWidth, alignment = Alignment.TopCenter)
+            Image(painter = painterResource(id = R.drawable.account_back), contentDescription = "Header background", modifier = Modifier.fillMaxSize().clip(shape = shape), contentScale = ContentScale.FillWidth, alignment = Alignment.TopCenter)
             Row(){
                 Text(text = " ${currentUserEmail}\n ${currentUser}", modifier = Modifier
                     .padding(10.dp)
@@ -146,7 +150,7 @@ fun AccountScreen(modifier: Modifier = Modifier, navController: NavController, a
             .fillMaxWidth()
             .clip(shape = RoundedCornerShape(2.dp))
             .padding(15.dp)
-            .background(Color.LightGray, shape = RoundedCornerShape(15.dp))) {
+            .background(color = Color(0xFF837a8e), shape = RoundedCornerShape(15.dp))) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(text = "Net Amount: ${netAmount}", modifier = Modifier.padding(5.dp), fontSize = 18.sp, color = Color.Black)
                 Spacer(modifier = Modifier.size(16.dp))
@@ -163,9 +167,10 @@ fun AccountScreen(modifier: Modifier = Modifier, navController: NavController, a
         Text(text = "Expense - Income Report", modifier = Modifier.padding(15.dp), fontSize = 12.sp, fontWeight = FontWeight.Bold)
         Box(modifier = Modifier
             .fillMaxWidth()
+            .fillMaxHeight()
             .clip(shape = RoundedCornerShape(2.dp))
-            .padding(15.dp)
-            .background(Color.LightGray, shape = RoundedCornerShape(15.dp))) {
+            .padding(12.dp)
+            .background(color = Color(0xFF837a8e), shape = RoundedCornerShape(15.dp))) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Button(onClick = { calendarState.show() }, modifier = Modifier
                     .fillMaxWidth()
@@ -178,83 +183,69 @@ fun AccountScreen(modifier: Modifier = Modifier, navController: NavController, a
                     }
                     Spacer(modifier = Modifier.size(10.dp))
                     Button(onClick = {showBarChart = false}, Modifier.fillMaxWidth()) {
-                        //TODO:Show Pie Chart
                         Text(text = "Ratio")
                     }
+                }
+                Row(modifier = Modifier.padding(10.dp)) {
+                    Button(onClick = { showIncome = true },modifier=Modifier.fillMaxWidth(0.5f)){
+                        Text(text = "Income")
+                    }
                     Spacer(modifier = Modifier.size(10.dp))
+                    Button(onClick = {showIncome = false}, Modifier.fillMaxWidth()) {
+                        Text(text = "Expense")
+                    }
                 }
-                if(showBarChart){
-                    BarChartElement(incomeTransactions,expenseTransactions,modifier = Modifier.height(350.dp))
-                }
-                else if(!showBarChart){
-                    PieChartElement(totalIncome.toFloat(),totalExpense.toFloat())
+                Box(modifier = Modifier.fillMaxSize().weight(1f).padding(10.dp)) {
+                    if (showBarChart) {
+                        if (showIncome) {
+                            BarChartElement(incomeTransactions)
+                        } else {
+                            BarChartElement(expenseTransactions)
+                        }
+                    } else if (!showBarChart) {
+                        if (showIncome) {
+                            PieChartElement(incomeTransactions)
+                        } else {
+                            PieChartElement(expenseTransactions)
+                        }
+                    }
                 }
             }
         }
     }
 }
 
+fun generateRandomColor(): Color {
+    val baseIntensity = 0.85f
+    val colorOptions = listOf(
+        Color(red = baseIntensity, green = Random.nextFloat(), blue = Random.nextFloat(), alpha = 1.0f),
+        Color(red = Random.nextFloat(), green = baseIntensity, blue = Random.nextFloat(), alpha = 1.0f),
+        Color(red = Random.nextFloat(), green = Random.nextFloat(), blue = baseIntensity, alpha = 1.0f)
+    )
+    return colorOptions.random()
+}
 @Composable
-fun BarChartElement(incomeTransactions: List<Pair<String, Double>>, expenseTransactions: List<Pair<String, Double>>, modifier: Modifier = Modifier){
-    val incomeBarData = incomeTransactions.map { (category, amount) ->
-        BarData(
-            point = Point(x = amount.toFloat(), y = 0f),
-            label = category)}
-    val expenseBarData = expenseTransactions.map { (category, amount) ->
-        BarData(
-            point = Point(x = amount.toFloat(), y = 0f),
-            label = category
-        )
-    }
-    val incomeXAxisData = AxisData.Builder()
-        .axisStepSize(30.dp)
-        .steps(incomeBarData.size - 1)
-        .bottomPadding(40.dp)
-        .axisLabelAngle(20f)
-        .labelData { index -> incomeBarData[index].label }
-        .build()
-
-    val incomeYAxisData = AxisData.Builder()
-        .steps(5)
-        .labelAndAxisLinePadding(20.dp)
-        .axisOffset(20.dp)
-        .labelData { index -> (index * 100).toString() }
-        .build()
-
-    val incomeChartData = BarChartData(
-        chartData = incomeBarData,
-        xAxisData = incomeXAxisData,
-        yAxisData = incomeYAxisData,
-    )
-
-    val expenseXAxisData = AxisData.Builder()
-        .axisStepSize(30.dp)
-        .steps(expenseBarData.size - 1)
-        .bottomPadding(40.dp)
-        .axisLabelAngle(20f)
-        .labelData { index -> expenseBarData[index].label }
-        .build()
-
-    val expenseYAxisData = AxisData.Builder()
-        .steps(5)
-        .labelAndAxisLinePadding(20.dp)
-        .axisOffset(20.dp)
-        .labelData { index -> (index * 100).toString() }
-        .build()
-
-    val expenseChartData = BarChartData(
-        chartData = expenseBarData,
-        xAxisData = expenseXAxisData,
-        yAxisData = expenseYAxisData,
-    )
-    BarChart(modifier = Modifier.height(350.dp), barChartData = incomeChartData)
-    BarChart(modifier = Modifier.height(350.dp), barChartData = expenseChartData)
+fun BarChartElement(Transactions: List<Pair<String, Double>>) {
+    val BarData = Transactions.mapIndexed { index, transaction -> BarData(point = Point(x = index.toFloat(), y = transaction.second.toFloat()), label = transaction.first,color = generateRandomColor()) }
+    val XAxisData = AxisData.Builder().axisStepSize(30.dp).steps(BarData.size - 1).bottomPadding(40.dp).axisLabelAngle(20f).labelData { index -> BarData[index].label }.build()
+    val YStepSize = 1000
+    val MaxRange = BarData.maxOfOrNull { it.point.y }?.toInt() ?: 1000
+    val YAxisData = AxisData.Builder().steps(YStepSize).labelAndAxisLinePadding(20.dp).axisOffset(20.dp).labelData { index -> (index * (MaxRange / YStepSize)).toString() }.build()
+    val BarChartData = BarChartData(chartData = BarData, xAxisData = XAxisData, backgroundColor = PurpleGrey40, tapPadding = 12.dp,horizontalExtraSpace= 12.dp)
+    BarChart(modifier = Modifier.height(800.dp), barChartData = BarChartData)
 }
 
 @Composable
-fun PieChartElement(incomeTotal :Float, expenseTotal :Float){
-    val slices = listOf(PieChartData.Slice("Income", incomeTotal, Color(0xFF66CC66)), PieChartData.Slice("Expense", expenseTotal, Color(0xFFCC6666)))
+fun PieChartElement(Transactions: List<Pair<String, Double>>){
+    val slices = Transactions.mapIndexed { index, transaction ->
+        PieChartData.Slice(
+            label = transaction.first,
+            value = transaction.second.toFloat(),
+            color = generateRandomColor()
+        )
+    }
+    //val slices = listOf(PieChartData.Slice("Income", incomeTotal, Color(0xFF66CC66)), PieChartData.Slice("Expense", expenseTotal, Color(0xFFCC6666)))
     val pieChartData = PieChartData(slices = slices, plotType = PlotType.Pie)
     val pieChartConfig = PieChartConfig(isAnimationEnable = true, showSliceLabels = true, animationDuration = 500,labelType = PieChartConfig.LabelType.VALUE)
-    PieChart(modifier = Modifier.fillMaxHeight(), pieChartData,pieChartConfig)
+    PieChart(modifier = Modifier.size(300.dp).background(color = Color(0xFF837a8e)), pieChartData,pieChartConfig)
 }
