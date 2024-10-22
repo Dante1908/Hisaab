@@ -30,4 +30,4 @@ To get a local copy up and running, follow these simple steps:
 
 1. Clone the repo:
    ```bash
-   git clone [https://github.com/yourusername/hisaab.git](https://github.com/Dante1908/Hisaab)
+   git clone https://github.com/Dante1908/Hisaab.git
