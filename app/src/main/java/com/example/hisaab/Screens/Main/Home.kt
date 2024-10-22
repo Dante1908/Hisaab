@@ -72,10 +72,6 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavController, auth
         Box(modifier = Modifier
             .fillMaxWidth()
             .height(100.dp)){
-            val shape =  RoundedCornerShape(2.dp)
-            Image(painter = painterResource(id = R.drawable.header_back),contentScale = ContentScale.Crop, contentDescription = "Header background", modifier = Modifier
-                .fillMaxSize()
-                .clip(shape), alignment = Alignment.TopCenter)
             Text(text = " Hi, ${currentUser} !", fontWeight = FontWeight.Bold, fontSize = 25.sp,modifier = Modifier.padding(12.dp))
         }
         Spacer(modifier = Modifier.height(10.dp))
