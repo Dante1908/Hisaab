@@ -23,10 +23,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -72,66 +73,19 @@ fun MyAppNavigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel)
     val authstate = authViewModel.observeAuthState().observeAsState()
     if (authstate.value == AuthState.Unauthenticated) {
         NavHost(navController = navController,
-            startDestination = "Login",
-            enterTransition = {
-            fadeIn(animationSpec = tween(700)) + slideIntoContainer(
-                AnimatedContentTransitionScope.SlideDirection.Left, tween(500)
-            )
-        },
-            exitTransition = {
-                fadeOut(animationSpec = tween(700)) + slideOutOfContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Left, tween(500)
-                )
-            },
-            popEnterTransition = {
-                fadeIn(animationSpec = tween(700)) + slideIntoContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Left, tween(500)
-                )
-            },
-            popExitTransition = {
-                fadeOut(animationSpec = tween(700)) + slideOutOfContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Left, tween(500)
-                )
-            }) {
+            startDestination = "Login",) {
             composable("Login") { LoginScreen(modifier, navController, authViewModel) }
             composable("ForgotPass") { ForgotPassword(modifier, navController, authViewModel) }
             composable("SignUp") { SignUpScreen(modifier, navController, authViewModel) }
         }
     } else if (authstate.value == AuthState.Authenticated) {
         val transactionViewModel = TransactionViewModel()
-        Scaffold(
-            bottomBar = {
-                BottomNavigationBar(navController = navController)
-            }
+        Scaffold(bottomBar = { BottomNavigationBar(navController = navController) }
         ) { paddingValues ->
-            NavHost(
-                navController = navController,
-                startDestination = "Home",
-                modifier = Modifier.padding(paddingValues)
-            ) {
-                composable("Home") {
-                    HomeScreen(
-                        navController = navController,
-                        authViewModel = authViewModel,
-                        modifier = Modifier,
-                        viewModel = transactionViewModel
-                    )
-                }
-                composable("Transaction") {
-                    TransactionScreen(
-                        navController = navController,
-                        authViewModel = authViewModel,
-                        modifier = Modifier
-                    )
-                }
-                composable("Account") {
-                    AccountScreen(
-                        navController = navController,
-                        authViewModel = authViewModel,
-                        modifier = Modifier,
-                        viewModel = transactionViewModel
-                    )
-                }
+            NavHost(navController = navController, startDestination = "Home", modifier = Modifier.padding(paddingValues)) {
+                composable("Home") { HomeScreen(navController = navController, authViewModel = authViewModel, modifier = Modifier, viewModel = transactionViewModel) }
+                composable("Transaction") { TransactionScreen(navController = navController, authViewModel = authViewModel, modifier = Modifier) }
+                composable("Account") { AccountScreen(navController = navController, authViewModel = authViewModel, modifier = Modifier, viewModel = transactionViewModel) }
             }
         }
     }
@@ -140,14 +94,17 @@ fun MyAppNavigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel)
 
 @Composable
 fun BottomNavigationBar(navController: NavController) {
-    val selected = remember { mutableStateOf("Home") }
+    val selected = rememberSaveable { mutableStateOf("Home") }
     BottomAppBar {
         IconButton(
             onClick = {
-                selected.value = "Home"
-                navController.navigate("Home") {
-                    popUpTo(navController.graph.startDestinationId)
-                    launchSingleTop = true
+                if (selected.value != "Home") {
+                    selected.value = "Home"
+                    navController.navigate("Home") {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
                 }
             },
             modifier = Modifier.weight(1f)
@@ -159,24 +116,27 @@ fun BottomNavigationBar(navController: NavController) {
                 tint = if (selected.value == "Home") Color.White else Color.Gray
             )
         }
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = Modifier.weight(1f).padding(16.dp), contentAlignment = Alignment.Center) {
             FloatingActionButton(onClick = {
-                navController.navigate("Transaction")
-            }) {
-                Icon(Icons.Default.Add, contentDescription = null, tint = Color.Blue)
-            }
+                if (selected.value != "Transaction") {
+                    selected.value = "Transaction"
+                    navController.navigate("Transaction") {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            }) { Icon(Icons.Default.Add, contentDescription = null, tint = Color.White) }
         }
         IconButton(
             onClick = {
-                selected.value = "Account"
-                navController.navigate("Account") {
-                    popUpTo(navController.graph.startDestinationId)
-                    launchSingleTop = true
+                if (selected.value != "Account") {
+                    selected.value = "Account"
+                    navController.navigate("Account") {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
                 }
             },
             modifier = Modifier.weight(1f)
